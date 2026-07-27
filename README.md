@@ -2,6 +2,8 @@
 
 Un simulador financiero e iterativo desarrollado en una única página web (**Single File Web Application**: HTML5 + CSS3 + JavaScript), diseñado para proyectar la evolución del capital, los rendimientos por dividendos acumulados y realizar análisis estadísticos de riesgo mediante el método de Monte Carlo.
 
+https://bondwell79.github.io/simulador_inversion/
+
 ---
 
 ## 🚀 Características Principales
