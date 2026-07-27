@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Inversión, Dividendos y Análisis Monte Carlo</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #2b6cb0;
+            --accent-color: #319795;
+            --bg-color: #f7fafc;
+            --card-bg: #ffffff;
+            --text-color: #2d3748;
+            --border-color: #e2e8f0;
+            --highlight-yellow: #fef08a;
+            --highlight-red: #fecaca;
+            --text-red: #991b1b;
+            --highlight-green: #dcfce7;
+            --text-green: #166534;
+            --purple-color: #805ad5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            font-size: 0.95rem;
+            opacity: 0.85;
+        }
+
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .panel-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #4a5568;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            text-align: center;
+            font-size: 0.9rem;
+            flex: 1;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2c5282;
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e0;
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: #2c7a7b;
+        }
+
+        .btn-purple {
+            background-color: var(--purple-color);
+            color: white;
+        }
+
+        .btn-purple:hover {
+            background-color: #6b46c1;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .kpi-card.purple {
+            border-left-color: var(--purple-color);
+        }
+
+        .kpi-card.red {
+            border-left-color: #e53e3e;
+        }
+
+        .kpi-card.green {
+            border-left-color: #38a169;
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-top: 4px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            text-align: right;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: #edf2f7;
+            color: #2d3748;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .text-center { text-align: center; }
+
+        .hl-yellow { background-color: var(--highlight-yellow) !important; font-weight: bold; }
+        .hl-red { background-color: var(--highlight-red) !important; color: var(--text-red); font-weight: bold; }
+        .hl-green { background-color: var(--highlight-green) !important; color: var(--text-green); font-weight: 600; }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #718096;
+            border-radius: 4px;
+        }
+
+        .tab-btn.active {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .mc-section {
+            background-color: #faf5ff;
+            border: 1px solid #e9d8fd;
+        }
+
+        .mc-section .card-title {
+            color: #553c9a;
+            border-bottom-color: #d6bcfa;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Simulador de Inversión, Dividendos y Análisis Monte Carlo</h1>
+        <p>Proyección dinámica, análisis estadístico de riesgos y probabilidad de pérdida sobre iteraciones múltiple</p>
+    </header>
+
+    <div class="panel-grid">
+        <!-- Parámetros -->
+        <div class="card">
+            <div class="card-title">Parámetros de Simulación</div>
+            
+            <div class="form-group">
+                <label for="capitalInicial">Capital Inicial (€)</label>
+                <input type="number" id="capitalInicial" value="180000" step="1000">
+            </div>
+
+            <div class="form-group">
+                <label for="valCompra">Val. Compra / Precio Acción (€)</label>
+                <input type="number" id="valCompra" value="23" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label for="variacionMax">Variación Máx. (%)</label>
+                <input type="number" id="variacionMax" value="2" step="0.1">
+            </div>
+
+            <div class="form-group">
+                <label for="divPorTitulo">Div por Título (€)</label>
+                <input type="number" id="divPorTitulo" value="0.18" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label for="retencionTax">Retención Dividendos (%)</label>
+                <input type="number" id="retencionTax" value="0" step="1">
+            </div>
+
+            <div class="form-group">
+                <label for="mesesIteracion">Meses a Simular</label>
+                <input type="number" id="mesesIteracion" value="12" min="1" max="120">
+            </div>
+
+            <div class="form-group">
+                <label for="numSimulaciones">Iteraciones Monte Carlo (Repeticiones)</label>
+                <input type="number" id="numSimulaciones" value="500" min="50" max="5000" step="50">
+            </div>
+
+            <div class="form-group">
+                <label for="fechaInicio">Fecha de Inicio</label>
+                <input type="date" id="fechaInicio" value="2026-07-01">
+            </div>
+
+            <div class="form-group">
+                <label for="modoSimulacion">Modo de Variación</label>
+                <select id="modoSimulacion">
+                    <option value="aleatorio" selected>Aleatorio [-VarMax%, +VarMax%]</option>
+                    <option value="tendenciaUp">Tendencia Alcista (+0.5% a +VarMax%)</option>
+                    <option value="tendenciaDown">Tendencia Bajista (-VarMax% a -0.5%)</option>
+                    <option value="imagen">Datos Ilustrativos Ejemplo (5 meses)</option>
+                </select>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="ejecutarSimulacionIndividual()">Simulación Individual</button>
+                <button class="btn btn-purple" onclick="ejecutarMonteCarlo()">🎲 Test Monte Carlo (Estadística)</button>
+                <div class="btn-row">
+                    <button class="btn btn-accent" onclick="agregarMes()">+1 Mes</button>
+                    <button class="btn btn-secondary" onclick="cargarDatosImagen()">Datos Ejemplo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs y Gráficos Individuales -->
+        <div>
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">Número de Acciones</div>
+                    <div class="kpi-value" id="kpiAcciones">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Capital Actual en Acciones</div>
+                    <div class="kpi-value" id="kpiCapitalFinal">0,00 €</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Dividendos Acumulados</div>
+                    <div class="kpi-value" id="kpiDivTotal">0,00 €</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Valor Total Final (Cap + Div)</div>
+                    <div class="kpi-value" id="kpiTotalFinal">0,00 €</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="tab-nav">
+                    <button class="tab-btn active" id="tabCap" onclick="cambiarTab('capital')">Evolución Capital & Total</button>
+                    <button class="tab-btn" id="tabDiv" onclick="cambiarTab('dividendos')">Evolución Dividendos</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Análisis Monte Carlo -->
+    <div class="card mc-section">
+        <div class="card-title">
+            <span>📊 Análisis Estadístico y Probabilidades (Monte Carlo)</span>
+            <span style="font-size: 0.85rem; font-weight: normal; color: #6b46c1;" id="mcHeaderSub">* Resultados basados en iteraciones repetidas</span>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card red">
+                <div class="kpi-label">Probabilidad de Pérdida Total</div>
+                <div class="kpi-value" id="mcProbPerdidaTotal" style="color: #c53030;">0,0%</div>
+                <div style="font-size:0.75rem; color:#718096; margin-top:2px;">(Valor Total < Capital Inicial)</div>
+            </div>
+            <div class="kpi-card red">
+                <div class="kpi-label">Pérdida Solo Cotización</div>
+                <div class="kpi-value" id="mcProbPerdidaCotizacion" style="color: #dd6b20;">0,0%</div>
+                <div style="font-size:0.75rem; color:#718096; margin-top:2px;">(Capital Acciones < Cap. Inicial)</div>
+            </div>
+            <div class="kpi-card green">
+                <div class="kpi-label">Retorno Medio Total</div>
+                <div class="kpi-value" id="mcRetornoMedio" style="color: #2f855a;">0,00 €</div>
+                <div style="font-size:0.75rem; color:#718096; margin-top:2px;" id="mcRetornoMedioPct">(+0,0%)</div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-label">Peor Escenario / Mejor Escenario</div>
+                <div class="kpi-value" id="mcMinMax" style="font-size: 1.05rem; margin-top:6px;">0 € / 0 €</div>
+            </div>
+        </div>
+
+        <div class="tab-nav">
+            <button class="tab-btn active" id="tabMcRutas" onclick="cambiarTabMC('rutas')">Abanico de Trayectorias</button>
+            <button class="tab-btn" id="tabMcHist" onclick="cambiarTabMC('histograma')">Distribución Frecuencia de Resultados</button>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="mcChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Tabla de Resultados Individuales -->
+    <div class="card">
+        <div class="card-title">
+            <span>Resultados de la Simulación Individual</span>
+            <span style="font-size: 0.82rem; font-weight: normal; color: #718096;">* Total = Capital Actual + Ganancia Dividendos</span>
+        </div>
+        <div class="table-container">
+            <table id="tablaSimulacion">
+                <thead>
+                    <tr>
+                        <th class="text-center">fecha</th>
+                        <th class="text-center">mes</th>
+                        <th>acciones</th>
+                        <th>valor accion</th>
+                        <th>variacion %</th>
+                        <th>capital</th>
+                        <th>Div por titulo</th>
+                        <th>Div</th>
+                        <th>ganancia div</th>
+                        <th>Beneficio</th>
+                        <th>%</th>
+                        <th>Total</th>
+                        <th>%</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    let chartInstance = null;
+    let mcChartInstance = null;
+    let historialDatos = [];
+    let resultadosMC = null;
+    let tipoGraficoActual = 'capital';
+    let tipoGraficoMC = 'rutas';
+
+    const fmtEur = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtNum = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    const fmtPct = new Intl.NumberFormat('es-ES', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+    function parseInput(id) {
+        return parseFloat(document.getElementById(id).value) || 0;
+    }
+
+    function formatDate(date) {
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
+    }
+
+    function cargarDatosImagen() {
+        document.getElementById('capitalInicial').value = 180000;
+        document.getElementById('valCompra').value = 23;
+        document.getElementById('variacionMax').value = 2;
+        document.getElementById('divPorTitulo').value = 0.18;
+        document.getElementById('retencionTax').value = 0;
+        document.getElementById('mesesIteracion').value = 5;
+        document.getElementById('fechaInicio').value = '2026-07-01';
+        document.getElementById('modoSimulacion').value = 'imagen';
+        
+        ejecutarSimulacionIndividual();
+        ejecutarMonteCarlo();
+    }
+
+    function ejecutarSimulacionIndividual() {
+        const capitalInicial = parseInput('capitalInicial');
+        const valCompra = parseInput('valCompra');
+        const variacionMax = parseInput('variacionMax');
+        const divBase = parseInput('divPorTitulo');
+        const retencionTax = parseInput('retencionTax');
+        const factorNetoDiv = 1 - (retencionTax / 100);
+        const meses = parseInt(document.getElementById('mesesIteracion').value) || 1;
+        const modo = document.getElementById('modoSimulacion').value;
+        const fechaStr = document.getElementById('fechaInicio').value;
+
+        const acciones = capitalInicial / valCompra;
+        let fechaActual = new Date(fechaStr);
+
+        historialDatos = [];
+        let valorAccionPrevio = valCompra;
+        let gananciaDivAcumulada = 0;
+
+        const datosEjemplo = [
+            { fecha: '01/07/2026', varPct: 2.00,  valAccion: 23.00, divTitulo: 0.17 },
+            { fecha: '10/08/2026', varPct: -1.00, valAccion: 23.46, divTitulo: 0.17 },
+            { fecha: '19/09/2026', varPct: -1.00, valAccion: 23.23, divTitulo: 0.17 },
+            { fecha: '29/10/2026', varPct: 2.00,  valAccion: 22.99, divTitulo: 0.18 },
+            { fecha: '08/12/2026', varPct: 0.00,  valAccion: 23.45, divTitulo: 0.15 }
+        ];
+
+        for (let i = 1; i <= meses; i++) {
+            let varPct = 0;
+            let valAccion = 0;
+            let divTitulo = divBase;
+            let fechaFormatted = "";
+
+            if (modo === 'imagen' && i <= datosEjemplo.length) {
+                const item = datosEjemplo[i - 1];
+                fechaFormatted = item.fecha;
+                varPct = item.varPct;
+                valAccion = item.valAccion;
+                divTitulo = item.divTitulo;
+            } else {
+                fechaFormatted = formatDate(fechaActual);
+                
+                if (i === 1) {
+                    varPct = variacionMax;
+                    valAccion = valCompra;
+                } else {
+                    if (modo === 'tendenciaUp') {
+                        varPct = 0.5 + Math.random() * (variacionMax - 0.5);
+                    } else if (modo === 'tendenciaDown') {
+                        varPct = -variacionMax + Math.random() * (variacionMax - 0.5);
+                    } else {
+                        varPct = (Math.random() * 2 - 1) * variacionMax;
+                    }
+                    valAccion = valorAccionPrevio * (1 + (varPct / 100));
+                }
+
+                divTitulo = Math.max(0, divBase + (Math.random() * 0.02 - 0.01));
+                fechaActual.setDate(fechaActual.getDate() + 30);
+            }
+
+            valorAccionPrevio = valAccion;
+
+            const capital = acciones * valAccion;
+            const divNeto = acciones * divTitulo * factorNetoDiv;
+            gananciaDivAcumulada += divNeto;
+
+            const beneficio = (capital - capitalInicial) + gananciaDivAcumulada;
+            const beneficioPct = beneficio / capitalInicial;
+            const total = capital + gananciaDivAcumulada;
+            const totalPct = (total - capitalInicial) / capitalInicial;
+
+            historialDatos.push({
+                mes: i,
+                fecha: fechaFormatted,
+                acciones: acciones,
+                valAccion: valAccion,
+                varPct: varPct,
+                capital: capital,
+                divTitulo: divTitulo,
+                divNeto: divNeto,
+                gananciaDiv: gananciaDivAcumulada,
+                beneficio: beneficio,
+                beneficioPct: beneficioPct,
+                total: total,
+                totalPct: totalPct
+            });
+        }
+
+        renderTabla();
+        actualizarKPIs();
+        renderGrafico();
+    }
+
+    function agregarMes() {
+        if (historialDatos.length === 0) {
+            ejecutarSimulacionIndividual();
+            return;
+        }
+
+        const capitalInicial = parseInput('capitalInicial');
+        const variacionMax = parseInput('variacionMax');
+        const divBase = parseInput('divPorTitulo');
+        const retencionTax = parseInput('retencionTax');
+        const factorNetoDiv = 1 - (retencionTax / 100);
+
+        const ultimo = historialDatos[historialDatos.length - 1];
+        const nuevoMes = ultimo.mes + 1;
+        
+        const partesFecha = ultimo.fecha.split('/');
+        let nuevaFechaObj = new Date(partesFecha[2], partesFecha[1] - 1, partesFecha[0]);
+        nuevaFechaObj.setDate(nuevaFechaObj.getDate() + 30);
+
+        const varPct = (Math.random() * 2 - 1) * variacionMax;
+        const valAccion = ultimo.valAccion * (1 + (varPct / 100));
+        const divTitulo = Math.max(0, divBase + (Math.random() * 0.02 - 0.01));
+
+        const acciones = ultimo.acciones;
+        const capital = acciones * valAccion;
+        const divNeto = acciones * divTitulo * factorNetoDiv;
+        const gananciaDivAcumulada = ultimo.gananciaDiv + divNeto;
+
+        const beneficio = (capital - capitalInicial) + gananciaDivAcumulada;
+        const beneficioPct = beneficio / capitalInicial;
+        const total = capital + gananciaDivAcumulada;
+        const totalPct = (total - capitalInicial) / capitalInicial;
+
+        historialDatos.push({
+            mes: nuevoMes,
+            fecha: formatDate(nuevaFechaObj),
+            acciones: acciones,
+            valAccion: valAccion,
+            varPct: varPct,
+            capital: capital,
+            divTitulo: divTitulo,
+            divNeto: divNeto,
+            gananciaDiv: gananciaDivAcumulada,
+            beneficio: beneficio,
+            beneficioPct: beneficioPct,
+            total: total,
+            totalPct: totalPct
+        });
+
+        document.getElementById('mesesIteracion').value = historialDatos.length;
+        renderTabla();
+        actualizarKPIs();
+        renderGrafico();
+    }
+
+    function ejecutarMonteCarlo() {
+        const capitalInicial = parseInput('capitalInicial');
+        const valCompra = parseInput('valCompra');
+        const variacionMax = parseInput('variacionMax');
+        const divBase = parseInput('divPorTitulo');
+        const retencionTax = parseInput('retencionTax');
+        const factorNetoDiv = 1 - (retencionTax / 100);
+        const meses = parseInt(document.getElementById('mesesIteracion').value) || 12;
+        const numSimulaciones = parseInt(document.getElementById('numSimulaciones').value) || 500;
+        const modo = document.getElementById('modoSimulacion').value;
+
+        const acciones = capitalInicial / valCompra;
+
+        let trayectoriaTotales = []; // Matriz [sim][mes]
+        let totalesFinales = [];
+        let capitalesFinales = [];
+        let contadorPerdidaTotal = 0;
+        let contadorPerdidaCotizacion = 0;
+
+        for (let sim = 0; sim < numSimulaciones; sim++) {
+            let valorAccionPrevio = valCompra;
+            let gananciaDivAcumulada = 0;
+            let rutaSingle = [capitalInicial];
+
+            for (let m = 1; m <= meses; m++) {
+                let varPct = 0;
+                if (m === 1) {
+                    varPct = variacionMax;
+                } else {
+                    if (modo === 'tendenciaUp') {
+                        varPct = 0.5 + Math.random() * (variacionMax - 0.5);
+                    } else if (modo === 'tendenciaDown') {
+                        varPct = -variacionMax + Math.random() * (variacionMax - 0.5);
+                    } else {
+                        varPct = (Math.random() * 2 - 1) * variacionMax;
+                    }
+                }
+
+                let valAccion = (m === 1) ? valCompra : valorAccionPrevio * (1 + (varPct / 100));
+                valorAccionPrevio = valAccion;
+
+                let divTitulo = Math.max(0, divBase + (Math.random() * 0.02 - 0.01));
+                let divNeto = acciones * divTitulo * factorNetoDiv;
+                gananciaDivAcumulada += divNeto;
+
+                let capitalAcciones = acciones * valAccion;
+                let totalAcumulado = capitalAcciones + gananciaDivAcumulada;
+
+                rutaSingle.push(totalAcumulado);
+
+                if (m === meses) {
+                    totalesFinales.push(totalAcumulado);
+                    capitalesFinales.push(capitalAcciones);
+
+                    if (totalAcumulado < capitalInicial) {
+                        contadorPerdidaTotal++;
+                    }
+                    if (capitalAcciones < capitalInicial) {
+                        contadorPerdidaCotizacion++;
+                    }
+                }
+            }
+            trayectoriaTotales.push(rutaSingle);
+        }
+
+        // Estadísticas
+        const probPerdidaTotal = (contadorPerdidaTotal / numSimulaciones);
+        const probPerdidaCotizacion = (contadorPerdidaCotizacion / numSimulaciones);
+        
+        const sumaTotales = totalesFinales.reduce((a, b) => a + b, 0);
+        const retornoMedio = sumaTotales / numSimulaciones;
+        const retornoMedioPct = (retornoMedio - capitalInicial) / capitalInicial;
+
+        const minTotal = Math.min(...totalesFinales);
+        const maxTotal = Math.max(...totalesFinales);
+
+        resultadosMC = {
+            numSimulaciones,
+            meses,
+            capitalInicial,
+            trayectoriaTotales,
+            totalesFinales,
+            probPerdidaTotal,
+            probPerdidaCotizacion,
+            retornoMedio,
+            retornoMedioPct,
+            minTotal,
+            maxTotal
+        };
+
+        // Renderizar KPIs de Monte Carlo
+        document.getElementById('mcHeaderSub').innerText = `* Simulación ejecutada ${numSimulaciones} veces (${meses} meses cada una)`;
+        document.getElementById('mcProbPerdidaTotal').innerText = fmtPct.format(probPerdidaTotal);
+        document.getElementById('mcProbPerdidaCotizacion').innerText = fmtPct.format(probPerdidaCotizacion);
+        document.getElementById('mcRetornoMedio').innerText = fmtEur.format(retornoMedio) + " €";
+        document.getElementById('mcRetornoMedioPct').innerText = `(${retornoMedioPct >= 0 ? '+' : ''}${fmtPct.format(retornoMedioPct)})`;
+        document.getElementById('mcMinMax').innerText = `${fmtEur.format(minTotal)} € / ${fmtEur.format(maxTotal)} €`;
+
+        renderGraficoMC();
+    }
+
+    function cambiarTabMC(tipo) {
+        tipoGraficoMC = tipo;
+        document.getElementById('tabMcRutas').classList.toggle('active', tipo === 'rutas');
+        document.getElementById('tabMcHist').classList.toggle('active', tipo === 'histograma');
+        renderGraficoMC();
+    }
+
+    function renderGraficoMC() {
+        if (!resultadosMC) return;
+
+        const ctx = document.getElementById('mcChart').getContext('2d');
+        if (mcChartInstance) {
+            mcChartInstance.destroy();
+        }
+
+        if (tipoGraficoMC === 'rutas') {
+            const labels = Array.from({length: resultadosMC.meses + 1}, (_, i) => i === 0 ? 'Inicio' : `Mes ${i}`);
+            
+            // Seleccionar hasta 50 trayectorias para no saturar el navegador
+            const maxLineas = Math.min(resultadosMC.numSimulaciones, 50);
+            const datasets = [];
+
+            for (let i = 0; i < maxLineas; i++) {
+                const finalValue = resultadosMC.trayectoriaTotales[i][resultadosMC.meses];
+                const esPerdida = finalValue < resultadosMC.capitalInicial;
+                
+                datasets.push({
+                    label: `Sim ${i+1}`,
+                    data: resultadosMC.trayectoriaTotales[i],
+                    borderColor: esPerdida ? 'rgba(229, 62, 62, 0.35)' : 'rgba(49, 151, 149, 0.25)',
+                    borderWidth: esPerdida ? 1.5 : 1,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.1
+                });
+            }
+
+            // Añadir línea de Capital Inicial
+            datasets.push({
+                label: 'Capital Inicial (Límite Pérdida)',
+                data: Array(resultadosMC.meses + 1).fill(resultadosMC.capitalInicial),
+                borderColor: '#2b6cb0',
+                borderDash: [6, 4],
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false
+            });
+
+            mcChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.dataset.label}: ${fmtEur.format(ctx.raw)} €`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { callback: v => v.toLocaleString('es-ES') + ' €' }
+                        }
+                    }
+                }
+            });
+
+        } else { // Histograma de Frecuencias
+            const numBins = 15;
+            const min = resultadosMC.minTotal;
+            const max = resultadosMC.maxTotal;
+            const binSize = (max - min) / numBins;
+
+            const bins = Array(numBins).fill(0);
+            const binLabels = [];
+
+            for (let i = 0; i < numBins; i++) {
+                const start = min + (i * binSize);
+                const end = start + binSize;
+                binLabels.push(`${Math.round(start/1000)}k - ${Math.round(end/1000)}k €`);
+            }
+
+            resultadosMC.totalesFinales.forEach(val => {
+                let binIndex = Math.floor((val - min) / binSize);
+                if (binIndex >= numBins) binIndex = numBins - 1;
+                bins[binIndex]++;
+            });
+
+            const backgroundColors = binLabels.map((_, i) => {
+                const binCenter = min + (i + 0.5) * binSize;
+                return binCenter < resultadosMC.capitalInicial ? 'rgba(229, 62, 62, 0.7)' : 'rgba(72, 187, 120, 0.7)';
+            });
+
+            mcChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: binLabels,
+                    datasets: [{
+                        label: 'Número de Ocasiones',
+                        data: bins,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.raw} ocasiones (${((ctx.raw/resultadosMC.numSimulaciones)*100).toFixed(1)}%)`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: { display: true, text: 'Frecuencia (Nº Ocasiones)' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Rango de Valor Total Final (€)' }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function renderTabla() {
+        const tbody = document.getElementById('tablaBody');
+        tbody.innerHTML = '';
+
+        const capitalInicial = parseInput('capitalInicial');
+
+        historialDatos.forEach((row, index) => {
+            const tr = document.createElement('tr');
+
+            const isFirstRowValAccion = (index === 0) ? 'hl-yellow' : '';
+            const isCapitalBelowInitial = (row.capital < capitalInicial) ? 'hl-red' : '';
+            const gananciaDivClass = 'hl-green';
+
+            const varPctStr = row.varPct === 0 ? '-' : fmtEur.format(row.varPct);
+
+            tr.innerHTML = `
+                <td class="text-center">${row.fecha}</td>
+                <td class="text-center">${row.mes}</td>
+                <td>${fmtNum.format(row.acciones)}</td>
+                <td class="${isFirstRowValAccion}">${fmtEur.format(row.valAccion)}</td>
+                <td>${varPctStr}</td>
+                <td class="${isCapitalBelowInitial}">${fmtEur.format(row.capital)}</td>
+                <td>${fmtEur.format(row.divTitulo)}</td>
+                <td>${fmtEur.format(row.divNeto)}</td>
+                <td class="${gananciaDivClass}">${fmtEur.format(row.gananciaDiv)}</td>
+                <td>${fmtEur.format(row.beneficio)}</td>
+                <td>${fmtPct.format(row.beneficioPct)}</td>
+                <td>${fmtEur.format(row.total)}</td>
+                <td>${fmtPct.format(row.totalPct)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function actualizarKPIs() {
+        if (historialDatos.length === 0) return;
+
+        const ultimo = historialDatos[historialDatos.length - 1];
+        document.getElementById('kpiAcciones').innerText = fmtNum.format(ultimo.acciones);
+        document.getElementById('kpiCapitalFinal').innerText = fmtEur.format(ultimo.capital) + " €";
+        document.getElementById('kpiDivTotal').innerText = fmtEur.format(ultimo.gananciaDiv) + " €";
+        document.getElementById('kpiTotalFinal').innerText = fmtEur.format(ultimo.total) + " €";
+    }
+
+    function cambiarTab(tipo) {
+        tipoGraficoActual = tipo;
+        document.getElementById('tabCap').classList.toggle('active', tipo === 'capital');
+        document.getElementById('tabDiv').classList.toggle('active', tipo === 'dividendos');
+        renderGrafico();
+    }
+
+    function renderGrafico() {
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        const labels = historialDatos.map(d => `Mes ${d.mes}`);
+
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        if (tipoGraficoActual === 'capital') {
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Capital en Acciones (€)',
+                            data: historialDatos.map(d => d.capital),
+                            borderColor: '#2b6cb0',
+                            backgroundColor: 'rgba(43, 108, 176, 0.1)',
+                            fill: true,
+                            tension: 0.2
+                        },
+                        {
+                            label: 'Valor Total (Cap + Divs) (€)',
+                            data: historialDatos.map(d => d.total),
+                            borderColor: '#319795',
+                            backgroundColor: 'rgba(49, 151, 149, 0.1)',
+                            fill: true,
+                            tension: 0.2
+                        },
+                        {
+                            label: 'Capital Inicial Base (€)',
+                            data: historialDatos.map(() => parseInput('capitalInicial')),
+                            borderColor: '#e53e3e',
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: value => value.toLocaleString('es-ES') + ' €'
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Dividendo Mensual Neto (€)',
+                            data: historialDatos.map(d => d.divNeto),
+                            backgroundColor: '#48bb78',
+                        },
+                        {
+                            label: 'Dividendo Acumulado (€)',
+                            data: historialDatos.map(d => d.gananciaDiv),
+                            type: 'line',
+                            borderColor: '#2f855a',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: value => value.toLocaleString('es-ES') + ' €'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    window.onload = function() {
+        ejecutarSimulacionIndividual();
+        ejecutarMonteCarlo();
+    };
+</script>
+
+</body>
+</html>
